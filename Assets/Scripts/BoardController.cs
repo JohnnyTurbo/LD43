@@ -8,7 +8,6 @@ public class BoardController : MonoBehaviour {
     public static BoardController instance;
 
     public GameObject gridUnitPrefab;
-    //public Transform gridParent;
     public int gridSizeX, gridSizeY;
     public bool isSacrificing = false;
 
@@ -27,6 +26,9 @@ public class BoardController : MonoBehaviour {
         tetrisText.SetActive(false);
     }
 
+    /// <summary>
+    /// Creates a grid of sized based off of gridSizeX and gridSizeY public variables
+    /// </summary>
     private void CreateGrid()
     {
         fullGrid = new GridUnit[gridSizeX, gridSizeY];
@@ -41,9 +43,13 @@ public class BoardController : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Checks to see if the coorinate is a valid coordinate on the current tetris board.
+    /// </summary>
+    /// <param name="coordToTest">The x,y coordinate to test</param>
+    /// <returns>Returns true if the coordinate to test is a vaild coordinate on the tetris board</returns>
     public bool IsInBounds(Vector2Int coordToTest)
     {
-        //Debug.Log("testing pos " + coordToTest.ToString());
         if (coordToTest.x < 0 || coordToTest.x >= gridSizeX || coordToTest.y < 0)
         {
             return false;
@@ -54,6 +60,11 @@ public class BoardController : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Checks to see if a given coordinate is occupied by a tetris piece
+    /// </summary>
+    /// <param name="coordToTest">The x,y coordinate to test</param>
+    /// <returns>Returns true if the coordinate is not occupied by a tetris piece</returns>
     public bool IsPosEmpty(Vector2Int coordToTest)
     {
         if(coordToTest.y >= 20)
@@ -71,16 +82,27 @@ public class BoardController : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Called when a piece is set in place. Sets the grid location to an occupied state.
+    /// </summary>
+    /// <param name="coords">The x,y coordinates to be occupied.</param>
+    /// <param name="tileGO">GameObject of the specific tile on this grid location.</param>
     public void OccupyPos(Vector2Int coords, GameObject tileGO)
     {
-        //Debug.Log("occupy: " + coords.ToString());
         fullGrid[coords.x, coords.y].isOccupied = true;
         fullGrid[coords.x, coords.y].tileOnGridUnit = tileGO;
     }
 
+    /// <summary>
+    /// Checks line by line from bottom to top to see if that line is full and should be cleared.
+    /// </summary>
     public void CheckLineClears()
     {
+        //List of indexes for the lines that need to be cleared.
         List<int> linesToClear = new List<int>();
+
+        //Counts how many lines next to each other will be cleared.
+        //If this count get  to four lines, that is a Tetris line clear.
         int consecutiveLineClears = 0;
 
         for(int y = 0; y < gridSizeY; y++)
@@ -97,7 +119,6 @@ public class BoardController : MonoBehaviour {
             {
                 linesToClear.Add(y);
                 consecutiveLineClears++;
-                Debug.Log("consecutive clears: " + consecutiveLineClears);
                 if (consecutiveLineClears == 4)
                 {
                     ShowTetrisText();
@@ -113,15 +134,20 @@ public class BoardController : MonoBehaviour {
             }
         }
 
+        //Once the lines have been cleared, the lines above those will drop to fill in the empty space
         if (linesToClear.Count > 0)
         {
             for(int i = 0; i < linesToClear.Count; i++)
             {
-                for (int lineToDrop = linesToClear[i] - i + 1; lineToDrop < gridSizeY; lineToDrop++) {
-                    //Debug.Log("line to drop: " + lineToDrop);
-                    for (int j = 0; j < gridSizeX; j++)
+                /* The initial index of lineToDrop is calculated by taking the index of the first line
+                 * that was cleared then adding 1 to indicate the index of the line above the cleared line,
+                 * then the value i is subtracted to compensate for any lines already cleared.
+                 */
+                for (int lineToDrop = linesToClear[i] + 1 - i; lineToDrop < gridSizeY; lineToDrop++)
+                {
+                    for (int x = 0; x < gridSizeX; x++)
                     {
-                        GridUnit curGridUnit = fullGrid[j, lineToDrop];
+                        GridUnit curGridUnit = fullGrid[x, lineToDrop];
                         if (curGridUnit.isOccupied)
                         {
                             MoveTileDown(curGridUnit);
@@ -132,17 +158,27 @@ public class BoardController : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Displays the Tetris text when a Tetris line clear is achieved.
+    /// </summary>
     void ShowTetrisText()
     {
         tetrisText.SetActive(true);
         Invoke("HideTetrisText", 4f);
     }
 
+    /// <summary>
+    /// Hides the Tetris line clear text.
+    /// </summary>
     void HideTetrisText()
     {
         tetrisText.SetActive(false);
     }
 
+    /// <summary>
+    /// Moves an individual tile down one unit.
+    /// </summary>
+    /// <param name="curGridUnit">The grid unit that contains the tile to be moved down</param>
     void MoveTileDown(GridUnit curGridUnit)
     {
         TileController curTile = curGridUnit.tileOnGridUnit.GetComponent<TileController>();
@@ -152,6 +188,10 @@ public class BoardController : MonoBehaviour {
         curGridUnit.isOccupied = false;
     }
 
+    /// <summary>
+    /// Clears all tiles from a specified line
+    /// </summary>
+    /// <param name="lineToClear">Index of the line to be cleared</param>
     void ClearLine(int lineToClear)
     {
         if(lineToClear < 0 || lineToClear > gridSizeY)
@@ -162,7 +202,7 @@ public class BoardController : MonoBehaviour {
         for(int x = 0; x < gridSizeX; x++)
         {
             PieceController curPC = fullGrid[x, lineToClear].tileOnGridUnit.GetComponent<TileController>().pieceController;
-            curPC.tiles[fullGrid[x, lineToClear].tileOnGridUnit.GetComponent<TileController>().tileID] = null;
+            curPC.tiles[fullGrid[x, lineToClear].tileOnGridUnit.GetComponent<TileController>().tileIndex] = null;
             Destroy(fullGrid[x, lineToClear].tileOnGridUnit);
             if (!curPC.AnyTilesLeft()) { Destroy(curPC.gameObject); }
             fullGrid[x, lineToClear].tileOnGridUnit = null;
@@ -170,12 +210,16 @@ public class BoardController : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Clears out the references to the piece being occupied on the grid unit,
+    /// then drops all pieces above them by one unit.
+    /// </summary>
+    /// <param name="pieceCoords">Array of coordinates where where the pieces were occupying</param>
     public void PieceRemoved(Vector2Int[] pieceCoords)
     {
         foreach(Vector2Int coords in pieceCoords)
         {
             GridUnit curGridUnit = fullGrid[coords.x, coords.y];
-            //MoveTileDown(curGridUnit);
             curGridUnit.tileOnGridUnit = null;
             curGridUnit.isOccupied = false;
         }
@@ -194,6 +238,11 @@ public class BoardController : MonoBehaviour {
         CheckLineClears();
     }
 
+    /// <summary>
+    /// Determines which pieces are unavailable to be 'sacrificed.' Any piece where one tile is at the top of a given
+    /// column is unable to be sacrificed.
+    /// </summary>
+    /// <returns>Returns a list of tiles unable to be sacrificed.</returns>
     public List<GameObject> GetUnavailablePieces()
     {
         List<GameObject> unavaiablePieces = new List<GameObject>();
@@ -204,8 +253,6 @@ public class BoardController : MonoBehaviour {
                 if (fullGrid[x, y].isOccupied)
                 {
                     GameObject curPC = fullGrid[x, y].tileOnGridUnit.GetComponent<TileController>().pieceController.gameObject;
-                    //Debug.Log("unavailable piece at " + x + ", " + y);
-                    //int curNum = curPC.tileNumber;
                     if (!unavaiablePieces.Any(test => test.GetInstanceID() == curPC.GetInstanceID()))
                     {
                         unavaiablePieces.Add(curPC);

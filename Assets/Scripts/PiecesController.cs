@@ -7,12 +7,11 @@ public class PiecesController : MonoBehaviour {
 
     public static PiecesController instance;
 
-    //public GameObject[] piecePrefabs;
     public GameObject piecePrefab;
     public Vector2Int spawnPos;
     public float dropTime;
     public int turnsToSac;
-    public Coroutine dropTileNorm;
+    public Coroutine dropCurPiece;
     public Vector2Int[,] JLSTZ_OFFSET_DATA { get; private set; }
     public Vector2Int[,] I_OFFSET_DATA { get; private set; }
     public Vector2Int[,] O_OFFSET_DATA { get; private set; }
@@ -25,8 +24,10 @@ public class PiecesController : MonoBehaviour {
     List<GameObject> availablePieces;
 
     int turnCounter;
-    int curTileNumber = 0;
 
+    /// <summary>
+    /// Called as soon as the instance is enabled. Sets the singleton and offset data arrays.
+    /// </summary>
     private void Awake()
     {
         instance = this;
@@ -91,6 +92,9 @@ public class PiecesController : MonoBehaviour {
         O_OFFSET_DATA[0, 3] = Vector2Int.left;
     }
 
+    /// <summary>
+    /// Called at the first frame instance is enabled. Sets some variables.
+    /// </summary>
     private void Start()
     {
         piecesInGame = new List<GameObject>();
@@ -99,41 +103,40 @@ public class PiecesController : MonoBehaviour {
         gameOverText.SetActive(false);
     }
 
+    /// <summary>
+    /// Called once every frame. Checks for player input.
+    /// </summary>
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
-            //MovePieceOneUnit(Vector2Int.up);
             curPieceController.SendPieceToFloor();
-            //SpawnPiece();
         }
         if (Input.GetKeyDown(KeyCode.DownArrow))
         {
-            MovePieceOneUnit(Vector2Int.down);
+            MoveCurPiece(Vector2Int.down);
         }
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            MovePieceOneUnit(Vector2Int.left);
+            MoveCurPiece(Vector2Int.left);
         }
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            MovePieceOneUnit(Vector2Int.right);
+            MoveCurPiece(Vector2Int.right);
         }
         if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
         {
             if(curPieceController != null)
             {
-                //curPieceController.SetPiece();
                 return;
             }
             turnCounter = 0;
             SpawnPiece();
-            //InvokeRepeating("DropPiece", 0f, dropTime);
-
         }
         if (Input.GetKeyDown(KeyCode.R)){
             SceneManager.LoadScene(0);
         }
+
         if (Input.GetKeyDown(KeyCode.X) || Input.GetKeyDown(KeyCode.Space))
         {
             curPieceController.RotatePiece(true, true);
@@ -142,7 +145,8 @@ public class PiecesController : MonoBehaviour {
         {
             curPieceController.RotatePiece(false, true);
         }
-        if(Input.GetButtonDown("Fire1") && pieceToDestroy != null)
+
+        if (Input.GetButtonDown("Fire1") && pieceToDestroy != null)
         {
             turnCounter = 0;
             sacText.SetActive(false);
@@ -154,51 +158,99 @@ public class PiecesController : MonoBehaviour {
             BoardController.instance.isSacrificing = false;
             SpawnPiece();
         }
+
+        if (Input.GetKeyDown(KeyCode.Alpha0))
+        {
+            SpawnDebug(0);
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            SpawnDebug(1);
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            SpawnDebug(2);
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            SpawnDebug(3);
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha4))
+        {
+            SpawnDebug(4);
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha5))
+        {
+            SpawnDebug(5);
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha6))
+        {
+            SpawnDebug(6);
+        }
+
     }
 
-    IEnumerator DropThePiece()
-    {
-        
+    /// <summary>
+    /// Drops the piece the current piece the player is controlling by one unit.
+    /// </summary>
+    /// <returns>Function is called on a loop based on the 'dropTime' variable.</returns>
+    IEnumerator DropCurPiece()
+    {     
         while (!BoardController.instance.isSacrificing) {
-            //Debug.Log("dropthepiece");
-            MovePieceOneUnit(Vector2Int.down);
+            MoveCurPiece(Vector2Int.down);
             yield return new WaitForSeconds(dropTime);
         }
     }
 
+    /// <summary>
+    /// Once the piece is set in it's final location, the coroutine called to repeatedly drop the piece is stopped.
+    /// </summary>
     public void PieceSet()
     {
-        StopCoroutine(dropTileNorm);
+        //if(dropCurPiece == null) { return; }
+        StopCoroutine(dropCurPiece);
     }
 
+    /// <summary>
+    /// Makes any necessary changes once the game has ended.
+    /// </summary>
     public void GameOver()
     {
         PieceSet();
         gameOverText.SetActive(true);
     }
 
+    /// <summary>
+    /// Removes the specified piece from the list of current pieces in the game.
+    /// </summary>
+    /// <param name="pieceToRem">Game Object of the Tetris piece to be removed.</param>
+    public void RemovePiece(GameObject pieceToRem)
+    {
+        piecesInGame.Remove(pieceToRem);
+    }
+
+    /// <summary>
+    /// Makes any necessary changes when destroying a piece.
+    /// </summary>
     void DestroyPiece()
     {
         PieceController curPC = pieceToDestroy.GetComponent<PieceController>();
-        Debug.Log("removing piece");
-        piecesInGame.Remove(curPC.gameObject);
         Vector2Int[] tileCoords = curPC.GetTileCoords();
+        RemovePiece(pieceToDestroy);
         Destroy(pieceToDestroy);
         BoardController.instance.PieceRemoved(tileCoords);
     }
 
+    /// <summary>
+    /// Spawns a new Tetris piece.
+    /// </summary>
     public void SpawnPiece()
-    {
-        
+    {     
         turnCounter++;
-        curTileNumber++;
 
-        PieceController localPC;
-        // localGO;
-
-        if(turnCounter >= turnsToSac && AttemptToSacrifice())
+        if(turnCounter >= turnsToSac && CanSacrifice())
         {
-            Debug.Log("tryna sacc?");
+            Debug.Log("Attempting Sacrifice");
             sacText.SetActive(true);
             BoardController.instance.isSacrificing = true;
             return;
@@ -207,23 +259,37 @@ public class PiecesController : MonoBehaviour {
         GameObject localGO = GameObject.Instantiate(piecePrefab, transform);
         curPiece = localGO;
         PieceType randPiece = (PieceType)Random.Range(0, 7);        
-        localPC = curPieceController = curPiece.GetComponent<PieceController>();
+        curPieceController = curPiece.GetComponent<PieceController>();
         curPieceController.SpawnPiece(randPiece);
-        curPieceController.tileNumber = curTileNumber;
         
         piecesInGame.Add(localGO);
 
-        dropTileNorm = StartCoroutine(DropThePiece());
-        Debug.Log("Spawning tole " + curTileNumber + " turn " + turnCounter);
+        dropCurPiece = StartCoroutine(DropCurPiece());
     }
 
-    bool AttemptToSacrifice()
+    public void SpawnDebug(int id)
     {
-        //availablePieces = piecesInGame;
+        GameObject localGO = GameObject.Instantiate(piecePrefab, transform);
+        curPiece = localGO;
+        PieceType randPiece = (PieceType)id;
+        curPieceController = curPiece.GetComponent<PieceController>();
+        curPieceController.SpawnPiece(randPiece);
+
+        piecesInGame.Add(localGO);
+    }
+
+    /// <summary>
+    /// Checks to see if the sacrificing operation can be made.
+    /// </summary>
+    /// <returns>True if operation can be made. False if it can't</returns>
+    bool CanSacrifice()
+    {
         availablePieces.Clear();
         availablePieces.AddRange(piecesInGame);
-        Debug.Log("there are " + piecesInGame.Count + " toatl pieces");
+        Debug.Log("there are " + piecesInGame.Count + " total pieces");
         List<GameObject> unavailablePieces = BoardController.instance.GetUnavailablePieces();
+        int numAvailablePieces = piecesInGame.Count - unavailablePieces.Count;
+        if(numAvailablePieces < 2) { return false; }
         foreach (GameObject pc in unavailablePieces)
         {
             availablePieces.Remove(pc);
@@ -231,33 +297,19 @@ public class PiecesController : MonoBehaviour {
         }
         
         Debug.Log("there are " + availablePieces.Count + " available pieces");
-        if (availablePieces.Count > 1)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        return true;
     }
 
-    public void RemovePiece(GameObject pieceToREm)
-    {
-        Debug.Log("removing piece");
-        piecesInGame.Remove(pieceToREm);
-    }
-
-    void DropPiece()
-    {
-        MovePieceOneUnit(Vector2Int.down);
-    }
-
-    public void MovePieceOneUnit(Vector2Int moveDirection)
+    /// <summary>
+    /// Moves the current piece controlled by the player.
+    /// </summary>
+    /// <param name="movement">X,Y amount the piece should be moved by</param>
+    public void MoveCurPiece(Vector2Int movement)
     {
         if(curPiece == null)
         {
             return;
         }
-        curPieceController.MovePiece(moveDirection);
+        curPieceController.MovePiece(movement);
     }
 }

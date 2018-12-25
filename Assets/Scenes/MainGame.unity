@@ -496,7 +496,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &524906820
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -663,7 +663,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 1700145810479668, guid: c43deab69ed58444495864572350c097, type: 2}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1212311197898722, guid: c43deab69ed58444495864572350c097, type: 2}
       propertyPath: m_IsActive
@@ -4179,7 +4179,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   piecePrefab: {fileID: 1819566748919856, guid: 001276e186c8db0469ae0bf5b31104ef,
     type: 2}
-  spawnPos: {x: 5, y: 20}
+  spawnPos: {x: 4, y: 21}
   dropTime: 0.25
   turnsToSac: 10
   piecesInGame: []
